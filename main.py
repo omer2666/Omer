@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 
 app = FastAPI()
 
@@ -50,7 +50,7 @@ class Course(BaseModel):
 async def create_student(student: Student):
     student_dict = student.dict(exclude_unset=True)
     result = await students_collection.insert_one(student_dict)
-    student_dict["_id"] = result.inserted_id
+    student_dict["_id"] = str(result.inserted_id)  # Ensure _id is a string
     return student_dict
 
 # Create a course
@@ -58,7 +58,7 @@ async def create_student(student: Student):
 async def create_course(course: Course):
     course_dict = course.dict(exclude_unset=True)
     result = await courses_collection.insert_one(course_dict)
-    course_dict["_id"] = result.inserted_id
+    course_dict["_id"] = str(result.inserted_id)  # Ensure _id is a string
     return course_dict
 
 # Enroll a student in a course
