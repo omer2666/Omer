@@ -1,14 +1,15 @@
 from fastapi import FastAPI, HTTPException
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import MongoClient
 from bson import ObjectId
 from pydantic import BaseModel, Field
 from typing import List
 
-# FastAPI app and MongoDB Atlas connection using motor
+# FastAPI app and MongoDB Atlas connection using pymongo
 app = FastAPI()
 
-# MongoDB Atlas connection using motor
-client = AsyncIOMotorClient("mongodb+srv://optimizations44:gjnQah1SK7eYvhXp@cluster0.mam9n.mongodb.net/my_database?retryWrites=true&w=majority&appName=Cluster0")
+# MongoDB Atlas connection using pymongo
+uri = "mongodb+srv://optimizations44:gjnQah1SK7eYvhXp@cluster0.y90og.mongodb.net/my_database?retryWrites=true&w=majority"
+client = MongoClient(uri)
 db = client.my_database
 
 students_collection = db.students
