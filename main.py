@@ -1,23 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo import MongoClient
 from bson import ObjectId
 from pydantic import BaseModel, Field
 from typing import List
 
-# MongoDB Atlas connection using pymongo
-uri = "mongodb://optimizations44:gjnQah1SK7eYvhXp@cluster0-shard-00-00.y90og.mongodb.net:27017,cluster0-shard-00-01.y90og.mongodb.net:27017,cluster0-shard-00-02.y90og.mongodb.net:27017/?ssl=true&replicaSet=atlas-gje0kv-shard-0&authSource=admin&retryWrites=true&w=majority&appName=Cluster0"
-try:
-    client = MongoClient(uri)
-    client.admin.command('ping')
-    print("Pinged your deployment. You successfully connected to MongoDB!")
-except Exception as e:
-    print(f"Error connecting to MongoDB: {e}")
-
 # FastAPI app and MongoDB Atlas connection using motor
 app = FastAPI()
 
-client = AsyncIOMotorClient("mongodb+srv://optimizations44:AFxOSWwAwq35swZR@cluster0.mam9n.mongodb.net/my_database?retryWrites=true&w=majority&appName=Cluster0")
+# MongoDB Atlas connection using motor
+client = AsyncIOMotorClient("mongodb+srv://optimizations44:gjnQah1SK7eYvhXp@cluster0.mam9n.mongodb.net/my_database?retryWrites=true&w=majority&appName=Cluster0")
 db = client.my_database
 
 students_collection = db.students
@@ -58,60 +49,75 @@ class Course(BaseModel):
 # Create a student
 @app.post("/students/", response_model=Student)
 async def create_student(student: Student):
-    student_dict = student.dict(exclude_unset=True)
-    result = await students_collection.insert_one(student_dict)
-    student_dict["_id"] = str(result.inserted_id)  # Ensure _id is a string
-    return student_dict
+    try:
+        student_dict = student.dict(exclude_unset=True)
+        result = await students_collection.insert_one(student_dict)
+        student_dict["_id"] = str(result.inserted_id)  # Ensure _id is a string
+        return student_dict
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating student: {e}")
 
 # Create a course
 @app.post("/courses/", response_model=Course)
 async def create_course(course: Course):
-    course_dict = course.dict(exclude_unset=True)
-    result = await courses_collection.insert_one(course_dict)
-    course_dict["_id"] = str(result.inserted_id)  # Ensure _id is a string
-    return course_dict
+    try:
+        course_dict = course.dict(exclude_unset=True)
+        result = await courses_collection.insert_one(course_dict)
+        course_dict["_id"] = str(result.inserted_id)  # Ensure _id is a string
+        return course_dict
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating course: {e}")
 
 # Enroll a student in a course
 @app.post("/enroll/")
 async def enroll_student(student_id: str, course_id: str):
-    student = await students_collection.find_one({"_id": ObjectId(student_id)})
-    course = await courses_collection.find_one({"_id": ObjectId(course_id)})
+    try:
+        student = await students_collection.find_one({"_id": ObjectId(student_id)})
+        course = await courses_collection.find_one({"_id": ObjectId(course_id)})
 
-    if not student or not course:
-        raise HTTPException(status_code=404, detail="Student or Course not found")
+        if not student or not course:
+            raise HTTPException(status_code=404, detail="Student or Course not found")
 
-    # Update student with course reference
-    await students_collection.update_one(
-        {"_id": ObjectId(student_id)},
-        {"$addToSet": {"enrolled_courses": ObjectId(course_id)}}
-    )
+        # Update student with course reference
+        await students_collection.update_one(
+            {"_id": ObjectId(student_id)},
+            {"$addToSet": {"enrolled_courses": ObjectId(course_id)}}
+        )
 
-    # Update course with student reference
-    await courses_collection.update_one(
-        {"_id": ObjectId(course_id)},
-        {"$addToSet": {"enrolled_students": ObjectId(student_id)}}
-    )
+        # Update course with student reference
+        await courses_collection.update_one(
+            {"_id": ObjectId(course_id)},
+            {"$addToSet": {"enrolled_students": ObjectId(student_id)}}
+        )
 
-    return {"message": "Student enrolled in course"}
+        return {"message": "Student enrolled in course"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error enrolling student: {e}")
 
 # Get all courses a student is enrolled in
 @app.get("/students/{student_id}/courses/", response_model=List[Course])
 async def get_student_courses(student_id: str):
-    student = await students_collection.find_one({"_id": ObjectId(student_id)})
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+    try:
+        student = await students_collection.find_one({"_id": ObjectId(student_id)})
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
 
-    course_ids = student.get("enrolled_courses", [])
-    courses = await courses_collection.find({"_id": {"$in": [ObjectId(id) for id in course_ids]}}).to_list(length=None)
-    return courses
+        course_ids = student.get("enrolled_courses", [])
+        courses = await courses_collection.find({"_id": {"$in": [ObjectId(id) for id in course_ids]}}).to_list(length=None)
+        return courses
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving student courses: {e}")
 
 # Get all students enrolled in a specific course
 @app.get("/courses/{course_id}/students/", response_model=List[Student])
 async def get_course_students(course_id: str):
-    course = await courses_collection.find_one({"_id": ObjectId(course_id)})
-    if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
+    try:
+        course = await courses_collection.find_one({"_id": ObjectId(course_id)})
+        if not course:
+            raise HTTPException(status_code=404, detail="Course not found")
 
-    student_ids = course.get("enrolled_students", [])
-    students = await students_collection.find({"_id": {"$in": [ObjectId(id) for id in student_ids]}}).to_list(length=None)
-    return students
+        student_ids = course.get("enrolled_students", [])
+        students = await students_collection.find({"_id": {"$in": [ObjectId(id) for id in student_ids]}}).to_list(length=None)
+        return students
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving course students: {e}")
