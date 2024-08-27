@@ -1,12 +1,22 @@
 from fastapi import FastAPI, HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import MongoClient
 from bson import ObjectId
 from pydantic import BaseModel, Field
 from typing import List
 
+# MongoDB Atlas connection using pymongo
+uri = "mongodb://optimizations44:gjnQah1SK7eYvhXp@cluster0-shard-00-00.y90og.mongodb.net:27017,cluster0-shard-00-01.y90og.mongodb.net:27017,cluster0-shard-00-02.y90og.mongodb.net:27017/?ssl=true&replicaSet=atlas-gje0kv-shard-0&authSource=admin&retryWrites=true&w=majority&appName=Cluster0"
+try:
+    client = MongoClient(uri)
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(f"Error connecting to MongoDB: {e}")
+
+# FastAPI app and MongoDB Atlas connection using motor
 app = FastAPI()
 
-# MongoDB Atlas connection
 client = AsyncIOMotorClient("mongodb+srv://optimizations44:AFxOSWwAwq35swZR@cluster0.mam9n.mongodb.net/my_database?retryWrites=true&w=majority&appName=Cluster0")
 db = client.my_database
 
